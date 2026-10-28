@@ -13,8 +13,12 @@ import {
   ChevronLeft,
   CreditCard,
   Building2,
+  Users,
+  FileText,
+  ScrollText,
 } from 'lucide-react';
 import { NavigationTab } from './Sidebar';
+import { DailySummaryCard } from './DailySummaryCard';
 
 interface DashboardViewProps {
   onNavigate: (tab: NavigationTab, subTab?: string) => void;
@@ -27,7 +31,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenQuickExpense,
   onOpenCashAdvance,
 }) => {
-  const { metrics, needsAttentionItems, activities } = useAccounting();
+  const { metrics, needsAttentionItems, activities, customers, saleDossiers, contracts } = useAccounting();
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto" dir="rtl">
@@ -155,6 +159,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
+      {/* Daily Summary Card: Snapshot of Today's Expenses, Incomes, and Net Balance */}
+      <DailySummaryCard
+        onNavigate={onNavigate}
+        onOpenQuickExpense={onOpenQuickExpense}
+      />
+
       {/* Creative Micro-Section: نیازمند پیگیری (Needs Attention) */}
       {needsAttentionItems.length > 0 && (
         <div
@@ -206,6 +216,90 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Highlights: Contracts, Sales Archive & Customer Master */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Contracts & Pacts Card (Phase 09A) */}
+        <div
+          onClick={() => onNavigate('contracts')}
+          className="bg-[#17181d] border border-[#272932] hover:border-amber-500/40 p-4 rounded-xl transition-all cursor-pointer group flex items-start justify-between"
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <ScrollText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-zinc-100">قراردادها و مبایعه‌نامه‌ها</h3>
+                <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                  {toPersianDigits(contracts.length)} قرارداد
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                تفکیک سود اقساطی، زمان‌بندی چک‌ها و تخصیص هوشمند مبالغ وصولی
+              </p>
+              <div className="mt-2.5 flex items-center gap-2 text-xs font-semibold text-amber-400">
+                <span>ورود به مدیریت قراردادها</span>
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Sales Archive Card */}
+        <div
+          onClick={() => onNavigate('sales')}
+          className="bg-[#17181d] border border-[#272932] hover:border-sky-500/40 p-4 rounded-xl transition-all cursor-pointer group flex items-start justify-between"
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <FileText className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-zinc-100">پرونده‌های فروش و تحویل</h3>
+                <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-sky-500/10 text-sky-300 border border-sky-500/20">
+                  {toPersianDigits(saleDossiers.length)} پرونده
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                دسترسی به فرم‌های تحویل مدرکی (فرم الف)، فرم‌های تحویل خودرو (فرم ب) و دیاگرام‌ها
+              </p>
+              <div className="mt-2.5 flex items-center gap-2 text-xs font-semibold text-sky-400">
+                <span>ورود به بایگانی فروش و تحویل</span>
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Customer Master Card */}
+        <div
+          onClick={() => onNavigate('customers')}
+          className="bg-[#17181d] border border-[#272932] hover:border-emerald-500/40 p-4 rounded-xl transition-all cursor-pointer group flex items-start justify-between"
+        >
+          <div className="flex items-start gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-zinc-100">بانک پرونده مشتریان</h3>
+                <span className="text-[10px] font-mono px-2 py-0.2 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                  {toPersianDigits(customers.length)} خریدار
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 mt-1">
+                سوابق چندگانه خرید، پروفایل اعتباری، چک‌ها، اسناد و خط زمانی تعامل با خریداران
+              </p>
+              <div className="mt-2.5 flex items-center gap-2 text-xs font-semibold text-emerald-400">
+                <span>مشاهده پرونده مشتریان</span>
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Grid: Latest Activity & Quick Shortcuts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

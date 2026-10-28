@@ -44,7 +44,8 @@ export const AutoAbdollahiSheet = forwardRef<HTMLDivElement, SheetProps>(
       <div
         ref={ref}
         id="auto-abdollahi-page3-table"
-        className="w-full max-w-[1100px] mx-auto bg-white text-slate-900 shadow-2xl rounded-xl border border-slate-300 overflow-hidden font-['Vazirmatn',sans-serif] select-none print:shadow-none print:border-none print:rounded-none"
+        className="w-full max-w-[1100px] mx-auto bg-white text-slate-900 shadow-2xl rounded-2xl border border-slate-300 overflow-hidden font-['Yekan',sans-serif] select-none print:shadow-none print:border-none print:rounded-none"
+        style={{ fontFamily: "'Yekan', sans-serif" }}
         dir="rtl"
       >
         {/* HEADER SECTION */}
@@ -52,7 +53,7 @@ export const AutoAbdollahiSheet = forwardRef<HTMLDivElement, SheetProps>(
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Right: Dealership Logo & Name */}
             <div className="flex items-center gap-3 text-right">
-              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg border border-amber-300 text-neutral-950 font-black text-2xl">
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg border border-amber-300 text-neutral-950 font-black text-2xl font-mono">
                 A
               </div>
               <div>
@@ -74,14 +75,14 @@ export const AutoAbdollahiSheet = forwardRef<HTMLDivElement, SheetProps>(
               <span className="text-sm font-black text-white">خودروهای آماده تحویل فوری</span>
             </div>
 
-            {/* Left: Page Info & Date as explicitly requested */}
+            {/* Left: Page Info & Date (English numerals with font-en-num class) */}
             <div className="text-left md:text-left flex flex-col items-center md:items-end gap-1">
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
                 <Calendar className="w-3.5 h-3.5" />
-                <span>تاریخ: ۱۴۰۵/۰۶/۲۹</span>
+                <span>تاریخ: <strong className="font-en-num font-bold">1405/06/29</strong></span>
               </div>
               <div className="text-xs font-extrabold text-zinc-300">
-                صفحه <span className="text-amber-400 text-sm">۳</span> از ۳
+                صفحه <span className="font-en-num text-amber-400 text-sm font-bold">3</span> از <span className="font-en-num font-bold">3</span>
               </div>
             </div>
           </div>
@@ -233,15 +234,15 @@ export const AutoAbdollahiSheet = forwardRef<HTMLDivElement, SheetProps>(
                       </div>
                     </td>
 
-                    {/* COLUMN 2: مدل (Model Year) */}
-                    <td className="py-2 px-3 text-center font-bold text-slate-800 text-sm border-l border-slate-200">
-                      <span className="px-2.5 py-1 rounded bg-slate-100 border border-slate-200/80 font-mono text-xs sm:text-sm">
+                    {/* COLUMN 2: مدل (Model Year) - NUMERIC CELL */}
+                    <td className="py-2.5 px-3 text-center border-l border-slate-200">
+                      <span className="font-en-num px-2.5 py-1 rounded bg-slate-100 border border-slate-200/80 font-bold text-xs sm:text-sm text-slate-800">
                         {car.year}
                       </span>
                     </td>
 
                     {/* COLUMN 3: رنگ (Color) */}
-                    <td className="py-2 px-3 text-center border-l border-slate-200">
+                    <td className="py-2.5 px-3 text-center border-l border-slate-200">
                       <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-slate-300 bg-white shadow-xs">
                         <span
                           className={`w-3.5 h-3.5 rounded-full border border-slate-400/60 shadow-xs flex-shrink-0 ${
@@ -258,21 +259,22 @@ export const AutoAbdollahiSheet = forwardRef<HTMLDivElement, SheetProps>(
                       </div>
                     </td>
 
-                    {/* COLUMN 4: کارکرد (Mileage) */}
-                    <td className="py-2 px-3 text-center font-bold border-l border-slate-200">
+                    {/* COLUMN 4: کارکرد (Mileage) - NUMERIC CELL */}
+                    <td className="py-2.5 px-3 text-center border-l border-slate-200">
                       {car.km === 0 ? (
-                        <span className="inline-block px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-black text-xs border border-emerald-300">
+                        <span className="inline-block px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs border border-emerald-300">
                           صفر کیلومتر
                         </span>
                       ) : (
-                        <span className="text-slate-900 font-mono text-xs sm:text-sm">
-                          {car.km_fa || car.km.toLocaleString('fa-IR')} <span className="text-[10px] text-slate-600 font-sans">کیلومتر</span>
+                        <span className="text-slate-900 text-xs sm:text-sm">
+                          <span className="font-en-num font-bold">{car.km.toLocaleString('en-US')}</span>{' '}
+                          <span className="text-[10px] text-slate-500 font-sans">کیلومتر</span>
                         </span>
                       )}
                     </td>
 
                     {/* COLUMN 5: مشخصات (Specifications / Trim - Far Left) */}
-                    <td className="py-2 px-3 text-center font-medium text-xs text-slate-700">
+                    <td className="py-2.5 px-3 text-center font-medium text-xs text-slate-700">
                       <span className="inline-block px-2.5 py-1 rounded bg-slate-100/90 text-slate-800 font-semibold border border-slate-200">
                         {car.trim_fa}
                       </span>
@@ -284,63 +286,63 @@ export const AutoAbdollahiSheet = forwardRef<HTMLDivElement, SheetProps>(
           </table>
         </div>
 
-        {/* FOOTER SECTION: Dealership Contacts & Bottom Brand Logos */}
-        <footer className="bg-neutral-950 text-white border-t-2 border-neutral-800 p-4">
-          {/* Contact Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs text-zinc-300 pb-3 border-b border-neutral-800">
+        {/* FOOTER SECTION: Minimal Bottom with Dealership Contacts & Brand Logos */}
+        <footer className="bg-gradient-to-b from-[#111216] to-[#0c0d10] text-zinc-300 border-t border-slate-200/90 p-4">
+          {/* Minimal Contact Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs pb-3 border-b border-white/5">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
-                <Phone className="w-3.5 h-3.5" />
+              <div className="w-5 h-5 rounded-md bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
+                <Phone className="w-3 h-3" />
               </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">تلفن دفتر مرکزی:</span>
-                <span className="font-bold text-white font-mono dir-ltr">۰۲۱-۲۲۴۰۰۰۰۰</span>
+              <div className="leading-tight">
+                <span className="text-zinc-400 block text-[10px]">دفتر مرکزی:</span>
+                <span className="font-en-num font-bold text-white text-xs sm:text-sm tracking-wide">021-22400000</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0">
-                <Phone className="w-3.5 h-3.5" />
+              <div className="w-5 h-5 rounded-md bg-amber-500/15 text-amber-400 flex items-center justify-center shrink-0">
+                <Phone className="w-3 h-3" />
               </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">همراه مدیریت فروش:</span>
-                <span className="font-bold text-white font-mono dir-ltr">۰۹۱۲-۰۰۰۰۰۰۰</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
-                <Instagram className="w-3.5 h-3.5" />
-              </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">اینستاگرام رسمی:</span>
-                <span className="font-bold text-white font-mono">@auto_abdollahi</span>
+              <div className="leading-tight">
+                <span className="text-zinc-400 block text-[10px]">مدیریت فروش:</span>
+                <span className="font-en-num font-bold text-white text-xs sm:text-sm tracking-wide">0912-0000000</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-3.5 h-3.5" />
+              <div className="w-5 h-5 rounded-md bg-rose-500/15 text-rose-400 flex items-center justify-center shrink-0">
+                <Instagram className="w-3 h-3" />
               </div>
-              <div>
-                <span className="text-zinc-400 block text-[10px]">آدرس نمایشگاه:</span>
-                <span className="font-medium text-white text-[11px]">تهران، نیاوران، نبش خیابان یاس</span>
+              <div className="leading-tight">
+                <span className="text-zinc-400 block text-[10px]">اینستاگرام:</span>
+                <span className="font-bold text-white text-xs tracking-wide">@auto_abdollahi</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md bg-sky-500/15 text-sky-400 flex items-center justify-center shrink-0">
+                <MapPin className="w-3 h-3" />
+              </div>
+              <div className="leading-tight">
+                <span className="text-zinc-400 block text-[10px]">موقعیت:</span>
+                <span className="text-zinc-200 text-[11px] truncate">تهران، نیاوران، نبش خیابان یاس</span>
               </div>
             </div>
           </div>
 
-          {/* Bottom Brand Logos Bar as specified: "Bottom brand logo bar" */}
-          <div className="pt-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="text-[11px] text-zinc-400 font-bold">
+          {/* Minimal Bottom Brand Logos Bar */}
+          <div className="pt-2.5 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="text-[11px] text-zinc-400 font-medium">
               برندهای معتبر حاضر در نمایشگاه اتو عبداللهی:
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {bottomBrands.map((b) => (
                 <div
                   key={b}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 border border-neutral-800 text-[10px] font-black text-zinc-300 hover:text-amber-400 hover:border-amber-500/40 transition-colors"
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/5 text-[10px] font-bold text-zinc-400 hover:text-amber-300 hover:border-amber-500/30 transition-colors"
                 >
-                  <BrandBadge brand={b} size={18} />
+                  <BrandBadge brand={b} size={15} />
                   <span>{b}</span>
                 </div>
               ))}

@@ -1,6 +1,6 @@
 {
   "name": "Auto Abdollahi - Car Placement & Price Sheet",
-  "description": "Interactive Page 3 inventory table for Auto Abdollahi (۱۴۰۵/۰۶/۲۹) with correct RTL vehicle placement, brand badges, and high-resolution PNG export.",
+  "description": "Interactive Page 3 inventory table for Auto Abdollahi (1405/06/29) with correct RTL vehicle placement, brand badges, and high-resolution PNG export.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

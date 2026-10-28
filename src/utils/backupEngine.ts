@@ -14,7 +14,36 @@
  */
 
 import JSZip from 'jszip';
-import { Expense, CashAdvance, SettlementRecord, Vehicle, Person, ActivityEvent } from '../types/accounting';
+import {
+  Expense,
+  CashAdvance,
+  SettlementRecord,
+  Vehicle,
+  Person,
+  ActivityEvent,
+  AccountingPeriod,
+  OpeningDocument,
+  Income,
+  Customer,
+  SaleDossier,
+  ConsignmentAgreement,
+  OwnerSettlement,
+  VehicleHandoverInspection,
+  ConsignmentReturnRecord,
+} from '../types/accounting';
+import { SmartContract } from '../types/contract';
+import {
+  FinancialAccount,
+  AccountTransfer,
+  IndirectTransaction,
+  DealCommission,
+  InvestorProfile,
+} from '../types/finance09b';
+import {
+  VehicleExpiringDoc,
+  ReferencePreset,
+  AuditLogEntry,
+} from '../types/patch09c';
 
 export interface BackupManifest {
   backupVersion: string;
@@ -25,7 +54,7 @@ export interface BackupManifest {
   databaseHash: string;
   backupSize: number;
   appName: string;
-  type: 'manual' | 'auto_close' | 'hourly_checkpoint' | 'emergency_pre_restore';
+  type: 'manual' | 'auto_close' | 'hourly_checkpoint' | 'emergency_pre_restore' | 'pre_new_period';
   status: 'valid' | 'failed' | 'corrupted';
 }
 
@@ -64,11 +93,75 @@ const APP_NAME = 'AutoAbdollahi Dealership Accounting';
 // ---------------------------------------------------------
 
 export async function computeDataFingerprint(dataString: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const buffer = await window.crypto.subtle.digest('SHA-256', encoder.encode(dataString));
-  return Array.from(new Uint8Array(buffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+  try {
+    if (typeof window !== 'undefined' && window.crypto?.subtle) {
+      const encoder = new TextEncoder();
+      const buffer = await window.crypto.subtle.digest('SHA-256', encoder.encode(dataString));
+      return Array.from(new Uint8Array(buffer))
+        .map((b) => b.toString(16).padStart(2, '0'))
+        .join('');
+    }
+  } catch {
+    // fallback if subtle crypto is not available
+  }
+  // Lightweight hash fallback
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < dataString.length; i++) {
+    const ch = dataString.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
+/**
+ * Safely decodes a base64 string into a Uint8Array binary buffer.
+ * Handles URL encoding, base64url (- and _), padding and malformed lengths
+ * without ever throwing an exception.
+ */
+export function safeBase64ToUint8Array(rawStr: string): Uint8Array | null {
+  try {
+    if (!rawStr || typeof rawStr !== 'string') return null;
+    let clean = rawStr.trim();
+    if (clean.includes('%')) {
+      try {
+        clean = decodeURIComponent(clean);
+      } catch {
+        // ignore
+      }
+    }
+    clean = clean.replace(/[\s\r\n]+/g, '');
+    clean = clean.replace(/-/g, '+').replace(/_/g, '/');
+    clean = clean.replace(/[^A-Za-z0-9+/=]/g, '');
+
+    const unpadded = clean.replace(/=+$/, '');
+    const rem = unpadded.length % 4;
+    if (rem === 1) {
+      return null;
+    }
+    let padded = unpadded;
+    if (rem === 2) padded += '==';
+    else if (rem === 3) padded += '=';
+
+    if (typeof atob === 'function') {
+      const binary = atob(padded);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    } else if (typeof Buffer !== 'undefined') {
+      return new Uint8Array(Buffer.from(padded, 'base64'));
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 // ---------------------------------------------------------
@@ -102,16 +195,37 @@ export interface FullDatabasePayload {
   version: string;
   exportedAt: string;
   expenses: Expense[];
+  incomes?: Income[];
   cashAdvances: CashAdvance[];
   settlements: SettlementRecord[];
   vehicles: Vehicle[];
   personnel: Person[];
   activities: ActivityEvent[];
+  periods?: AccountingPeriod[];
+  openingDocuments?: OpeningDocument[];
+  activePeriodId?: string;
+  customers?: Customer[];
+  saleDossiers?: SaleDossier[];
+  consignmentAgreements?: ConsignmentAgreement[];
+  ownerSettlements?: OwnerSettlement[];
+  vehicleInspections?: VehicleHandoverInspection[];
+  consignmentReturns?: ConsignmentReturnRecord[];
+  contracts?: SmartContract[];
+  financialAccounts?: FinancialAccount[];
+  accountTransfers?: AccountTransfer[];
+  indirectTransactions?: IndirectTransaction[];
+  dealCommissions?: DealCommission[];
+  investorProfiles?: InvestorProfile[];
+  expiringDocs?: VehicleExpiringDoc[];
+  presets?: ReferencePreset[];
+  auditLogs?: AuditLogEntry[];
+  customDocumentChecklist?: string[];
+  customEquipmentChecklist?: string[];
 }
 
 export async function createConsistentBackupZip(
   dbPayload: FullDatabasePayload,
-  type: 'manual' | 'auto_close' | 'hourly_checkpoint' | 'emergency_pre_restore' = 'manual'
+  type: 'manual' | 'auto_close' | 'hourly_checkpoint' | 'emergency_pre_restore' | 'pre_new_period' = 'manual'
 ): Promise<{
   zipBlob: Blob;
   manifest: BackupManifest;
@@ -137,15 +251,50 @@ export async function createConsistentBackupZip(
 
   // 2. Count records and attachments
   let attachmentCount = 0;
-  dbPayload.expenses.forEach((e) => {
-    if (e.receipts) attachmentCount += e.receipts.length;
-  });
+  if (dbPayload.expenses) {
+    dbPayload.expenses.forEach((e) => {
+      if (e.receipts) attachmentCount += e.receipts.length;
+    });
+  }
+  if (dbPayload.saleDossiers) {
+    dbPayload.saleDossiers.forEach((s) => {
+      if (s.attachments) attachmentCount += s.attachments.length;
+      if (s.deliveryFormB?.photos) attachmentCount += s.deliveryFormB.photos.length;
+    });
+  }
+  if (dbPayload.vehicleInspections) {
+    dbPayload.vehicleInspections.forEach((vi) => {
+      if (vi.generalPhotos) attachmentCount += vi.generalPhotos.length;
+      if (vi.checklist) {
+        vi.checklist.forEach((item) => {
+          if (item.photoUrl) attachmentCount += 1;
+        });
+      }
+    });
+  }
+
   const recordCount =
-    dbPayload.expenses.length +
-    dbPayload.cashAdvances.length +
-    dbPayload.settlements.length +
-    dbPayload.vehicles.length +
-    dbPayload.personnel.length;
+    (dbPayload.expenses?.length || 0) +
+    (dbPayload.cashAdvances?.length || 0) +
+    (dbPayload.settlements?.length || 0) +
+    (dbPayload.vehicles?.length || 0) +
+    (dbPayload.personnel?.length || 0) +
+    (dbPayload.incomes?.length || 0) +
+    (dbPayload.customers?.length || 0) +
+    (dbPayload.saleDossiers?.length || 0) +
+    (dbPayload.consignmentAgreements?.length || 0) +
+    (dbPayload.ownerSettlements?.length || 0) +
+    (dbPayload.vehicleInspections?.length || 0) +
+    (dbPayload.consignmentReturns?.length || 0) +
+    (dbPayload.contracts?.length || 0) +
+    (dbPayload.financialAccounts?.length || 0) +
+    (dbPayload.accountTransfers?.length || 0) +
+    (dbPayload.indirectTransactions?.length || 0) +
+    (dbPayload.dealCommissions?.length || 0) +
+    (dbPayload.investorProfiles?.length || 0) +
+    (dbPayload.expiringDocs?.length || 0) +
+    (dbPayload.presets?.length || 0) +
+    (dbPayload.auditLogs?.length || 0);
 
   // 3. Build JSZip package
   const zip = new JSZip();
@@ -153,21 +302,111 @@ export async function createConsistentBackupZip(
   // Attach database.json
   zip.file('database.json', serializedDb);
 
-  // Attach receipt attachments into attachments/ folder
+  // Attach receipt and file attachments into attachments/ folder
   const attachmentsFolder = zip.folder('attachments');
   if (attachmentsFolder) {
-    dbPayload.expenses.forEach((exp) => {
-      if (exp.receipts) {
-        exp.receipts.forEach((r, idx) => {
-          if (r.url && r.url.startsWith('data:')) {
-            const parts = r.url.split(',');
-            const base64Data = parts[1];
-            const safeName = `receipt_${exp.id.slice(0, 8)}_${idx + 1}.jpg`;
-            attachmentsFolder.file(safeName, base64Data, { base64: true });
+    // Helper to package any data: or text URL into zip
+    const packageAttachment = (rawUrl: string, prefix: string, idx: number, fallbackName?: string) => {
+      try {
+        if (!rawUrl || typeof rawUrl !== 'string') return;
+        if (rawUrl.startsWith('data:')) {
+          const commaIdx = rawUrl.indexOf(',');
+          if (commaIdx !== -1) {
+            const meta = rawUrl.slice(0, commaIdx);
+            const rawContent = rawUrl.slice(commaIdx + 1);
+            const isBase64 = meta.includes(';base64');
+            const isSvg = meta.includes('image/svg+xml');
+            const isPng = meta.includes('image/png');
+            const ext = isSvg ? 'svg' : isPng ? 'png' : 'jpg';
+            const safeName = `${prefix}_${idx + 1}.${ext}`;
+
+            if (isBase64) {
+              const bytes = safeBase64ToUint8Array(rawContent);
+              if (bytes && bytes.length > 0) {
+                // Pass binary buffer directly - completely avoids JSZip base64 decode errors!
+                attachmentsFolder.file(safeName, bytes);
+              } else {
+                // If decoding fails, store as plain text without base64 flag so JSZip doesn't choke
+                try {
+                  attachmentsFolder.file(safeName, rawContent);
+                } catch {
+                  // ignore
+                }
+              }
+            } else {
+              let decodedText = rawContent;
+              try {
+                decodedText = decodeURIComponent(rawContent);
+              } catch {
+                decodedText = rawContent;
+              }
+              attachmentsFolder.file(safeName, decodedText);
+            }
           }
-        });
+        }
+      } catch (attErr) {
+        console.warn('Skipping unreadable attachment in backup:', fallbackName, attErr);
       }
-    });
+    };
+
+    // 1. Expense receipts
+    if (dbPayload.expenses) {
+      dbPayload.expenses.forEach((exp) => {
+        if (exp.receipts) {
+          exp.receipts.forEach((r, idx) => {
+            packageAttachment(r.url, `receipt_${exp.id.slice(0, 8)}`, idx, r.name);
+          });
+        }
+      });
+    }
+
+    // 2. Sale dossier attachments & photos
+    if (dbPayload.saleDossiers) {
+      dbPayload.saleDossiers.forEach((sale) => {
+        if (sale.deliveryFormB?.photos) {
+          sale.deliveryFormB.photos.forEach((p, idx) => {
+            packageAttachment(p.url, `sale_photo_${sale.id.slice(0, 8)}`, idx, p.title);
+          });
+        }
+        if (sale.attachments) {
+          sale.attachments.forEach((att, idx) => {
+            packageAttachment(att.url, `sale_att_${sale.id.slice(0, 8)}`, idx, att.name);
+          });
+        }
+      });
+    }
+
+    // 3. Vehicle inspections photos
+    if (dbPayload.vehicleInspections) {
+      dbPayload.vehicleInspections.forEach((insp) => {
+        if (insp.generalPhotos) {
+          insp.generalPhotos.forEach((gp, idx) => {
+            packageAttachment(gp.url, `insp_photo_${insp.id.slice(0, 8)}`, idx, gp.title);
+          });
+        }
+        if (insp.checklist) {
+          insp.checklist.forEach((item, idx) => {
+            if (item.photoUrl) {
+              packageAttachment(item.photoUrl, `chk_photo_${item.id.slice(0, 8)}`, idx, item.photoName || item.title);
+            }
+          });
+        }
+      });
+    }
+
+    // 4. Smart Contract attachments & signed files
+    if (dbPayload.contracts) {
+      dbPayload.contracts.forEach((cnt) => {
+        if (cnt.signedContractUrl) {
+          packageAttachment(cnt.signedContractUrl, `contract_signed_${cnt.id.slice(0, 8)}`, 0, 'signed_contract');
+        }
+        if (cnt.attachments) {
+          cnt.attachments.forEach((att, idx) => {
+            packageAttachment(att.url, `contract_att_${cnt.id.slice(0, 8)}`, idx, att.name);
+          });
+        }
+      });
+    }
   }
 
   // Add application metadata
@@ -186,11 +425,32 @@ export async function createConsistentBackupZip(
   const dateStr = tempDate.toISOString().replace(/[:.]/g, '-');
   const filename = `AutoAbdollahi_Backup_${dateStr}_${type}.zip`;
 
-  const rawZipBlob = await zip.generateAsync({
-    type: 'blob',
-    compression: 'DEFLATE',
-    compressionOptions: { level: 6 },
-  });
+  let rawZipBlob: Blob;
+  try {
+    rawZipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+  } catch (genErr) {
+    console.warn('Zip generation with attachments failed, creating fallback clean backup:', genErr);
+    const cleanZip = new JSZip();
+    cleanZip.file('database.json', serializedDb);
+    cleanZip.file(
+      'app-config.json',
+      JSON.stringify({
+        appName: APP_NAME,
+        schemaVersion: DB_VERSION,
+        platform: 'AutoAbdollahi Local Enterprise',
+        generatedAt: new Date().toISOString(),
+      })
+    );
+    rawZipBlob = await cleanZip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+  }
 
   const manifest: BackupManifest = {
     backupVersion: '1.0.0',
@@ -392,7 +652,8 @@ export function calculateStorageMetrics(db: FullDatabasePayload): StorageMetrics
     db.cashAdvances.length +
     db.settlements.length +
     db.vehicles.length +
-    db.personnel.length;
+    db.personnel.length +
+    (db.incomes?.length || 0);
 
   const lastBackup = catalog[0];
 

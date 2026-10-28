@@ -14,11 +14,19 @@ import {
   Lock,
   QrCode,
   CheckCircle2,
+  Layers,
+  FileText,
+  Calendar,
+  ShieldAlert,
 } from 'lucide-react';
 import { toPersianDigits } from '../utils/formatters';
 import { BackupFolderModal } from './BackupFolderModal';
 import { TotpSetupModal } from './TotpSetupModal';
+import { OpeningDocumentModal } from './OpeningDocumentModal';
+import { OpeningDocumentsListModal } from './OpeningDocumentsListModal';
+import { TrueResetModal } from './TrueResetModal';
 import { BackupCatalogEntry } from '../utils/backupEngine';
+import { LegacyImportCenter } from './LegacyImportCenter';
 
 export const SettingsView: React.FC = () => {
   const {
@@ -26,13 +34,15 @@ export const SettingsView: React.FC = () => {
     addPerson,
     archivePerson,
     formatActivationTime,
-    resetAllData,
     lastBackupInfo,
     createManualBackup,
     restoreBackup,
     lockApplication,
     currentTotpSecret,
     setupTotp,
+    activePeriod,
+    periods,
+    openingDocuments,
   } = useAccounting();
 
   const [isAddingPerson, setIsAddingPerson] = useState(false);
@@ -43,6 +53,9 @@ export const SettingsView: React.FC = () => {
   // Backup & Security modal states
   const [isBackupFolderOpen, setIsBackupFolderOpen] = useState(false);
   const [isTotpModalOpen, setIsTotpModalOpen] = useState(false);
+  const [isOpeningDocModalOpen, setIsOpeningDocModalOpen] = useState(false);
+  const [isOpeningDocsListOpen, setIsOpeningDocsListOpen] = useState(false);
+  const [isTrueResetModalOpen, setIsTrueResetModalOpen] = useState(false);
   const [pendingRestoreFile, setPendingRestoreFile] = useState<File | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -95,8 +108,80 @@ export const SettingsView: React.FC = () => {
       <div className="bg-[#17181d] border border-[#26282e] p-4 rounded-xl">
         <h1 className="text-base sm:text-lg font-bold text-zinc-100">تنظیمات، امنیت و پشتیبان‌گیری</h1>
         <p className="text-xs text-zinc-400 mt-0.5">
-          مدیریت پرسنل، چرخه پشتیبان‌گیری فشرده، نگهداری نسخه‌ها و احراز هویت Google Authenticator
+          مدیریت دوره‌های مالی و اسناد افتتاحیه، پرسنل، چرخه پشتیبان‌گیری فشرده و احراز هویت
         </p>
+      </div>
+
+      {/* Opening Document & Accounting Periods (Start Fresh the Right Way) */}
+      <div className="bg-[#17181d] border border-[#26282e] rounded-xl overflow-hidden shadow-sm">
+        <div className="p-4 border-b border-[#26282e] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-[#141519]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="text-sm font-bold text-zinc-100">سند افتتاحیه و دوره‌های مالی</span>
+              <div className="text-[11px] text-zinc-400">
+                مدیریت بستن دوره‌های قبلی و شروع دوره مالی جدید بدون حذف اطلاعات گذشته
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={() => setIsOpeningDocsListOpen(true)}
+              className="px-3 py-1.5 bg-[#21232d] hover:bg-[#2a2d3a] text-zinc-200 border border-[#2f3242] font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-zinc-400" />
+              <span>مشاهده اسناد افتتاحیه ({toPersianDigits(openingDocuments.length)})</span>
+            </button>
+
+            <button
+              onClick={() => setIsOpeningDocModalOpen(true)}
+              className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>+ سند افتتاحیه جدید</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4 text-xs">
+          {/* Current Period Info */}
+          <div className="p-3.5 bg-[#131417] border border-[#24262e] rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-zinc-400">دوره مالی فعال کنونی:</span>
+                <span className="font-bold text-zinc-100 text-sm">{activePeriod?.title || 'دوره فعال'}</span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  دوره جاری
+                </span>
+              </div>
+              <div className="text-[11px] text-zinc-400 flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5 text-zinc-500" />
+                <span>تاریخ شروع دوره: {activePeriod?.startDate || '۱۴۰۵/۰۱/۰۱'}</span>
+                <span>•</span>
+                <span>تعداد کل دوره‌ها در سیستم: {toPersianDigits(periods.length)} دوره</span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsOpeningDocModalOpen(true)}
+              className="text-xs text-amber-400 hover:text-amber-300 font-semibold self-start sm:self-auto flex items-center gap-1"
+            >
+              <span>افتتاح دوره کاری جدید...</span>
+            </button>
+          </div>
+
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1.5 text-amber-200/90 leading-relaxed text-[11px]">
+            <div className="font-bold text-amber-300 flex items-center gap-1.5">
+              <span>راهنمای شروع دوره مالی جدید («شروع از اول» اصولی):</span>
+            </div>
+            <p>
+              در حسابداری اتومبیل، «شروع از اول» هرگز به معنای حذف سوابق یا پاکسازی سیستم نیست. با کلیک بر روی <strong>+ سند افتتاحیه جدید</strong>، پیش از هر اقدامی یک نسخه پشتیبان خودکار ایجاد می‌شود، دوره قبلی به همراه تمام خودروها، هزینه‌ها و رسیدها به صورت امن بایگانی می‌گردد، و دوره جدید با مانده‌های نقدی و تنخواه‌های دلخواه شما آغاز می‌شود.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Backup & Data Protection Section */}
@@ -366,26 +451,25 @@ export const SettingsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Reset System Data */}
-      <div className="p-4 rounded-xl bg-[#17181d] border border-[#26282e] space-y-3">
-        <div className="flex items-center gap-2">
-          <RefreshCw className="w-4 h-4 text-zinc-400" />
-          <h2 className="text-xs sm:text-sm font-bold text-zinc-200">بازنشانی داده‌ها</h2>
+      {/* Phase 07: Legacy Historical Sales & Customer Import Center */}
+      <LegacyImportCenter />
+
+      {/* Advanced Reset Section (Separate from normal accounting workflow) */}
+      <div className="p-4 rounded-xl bg-[#151417] border border-rose-500/20 space-y-3">
+        <div className="flex items-center gap-2 text-rose-400">
+          <ShieldAlert className="w-4 h-4" />
+          <h2 className="text-xs sm:text-sm font-bold text-rose-300">عملیات پیشرفته: پاکسازی کامل اطلاعات</h2>
         </div>
         <p className="text-xs text-zinc-400 leading-relaxed">
-          در صورت تمایل می‌توانید کلیه هزینه‌ها، تنخواه‌ها و خودروها را به مقادیر اولیه نمونه سیستم بازگردانید.
+          <strong className="text-zinc-300">توجه:</strong> جهت آغاز سال یا دوره کاری جدید، از بخش <strong>«سند افتتاحیه جدید»</strong> در بالای این صفحه استفاده نمایید. گزینه زیر صرفاً برای محیط‌های آزمایشی، ریست نرم‌افزار و پاکسازی کلی پایگاه داده در نظر گرفته شده و نیازمند تأیید کتبی و تهیه پشتیبان الزامی است.
         </p>
 
         <button
-          onClick={() => {
-            if (window.confirm('آیا از بازنشانی داده‌ها به اطلاعات اولیه مطمئن هستید؟')) {
-              resetAllData();
-            }
-          }}
-          className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/25 rounded-lg text-xs font-semibold transition-colors cursor-pointer self-start flex items-center gap-1.5"
+          onClick={() => setIsTrueResetModalOpen(true)}
+          className="px-3.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-semibold transition-colors cursor-pointer self-start flex items-center gap-1.5"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-          <span>بازنشانی به داده‌های نمونه</span>
+          <Trash2 className="w-3.5 h-3.5" />
+          <span>پاکسازی کامل پایگاه داده...</span>
         </button>
       </div>
 
@@ -403,6 +487,22 @@ export const SettingsView: React.FC = () => {
         onSetupSuccess={async (newSecret) => {
           await setupTotp(newSecret);
         }}
+      />
+
+      <OpeningDocumentModal
+        isOpen={isOpeningDocModalOpen}
+        onClose={() => setIsOpeningDocModalOpen(false)}
+      />
+
+      <OpeningDocumentsListModal
+        isOpen={isOpeningDocsListOpen}
+        onClose={() => setIsOpeningDocsListOpen(false)}
+        onOpenNewModal={() => setIsOpeningDocModalOpen(true)}
+      />
+
+      <TrueResetModal
+        isOpen={isTrueResetModalOpen}
+        onClose={() => setIsTrueResetModalOpen(false)}
       />
     </div>
   );

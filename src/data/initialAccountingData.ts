@@ -1,4 +1,4 @@
-import { Vehicle, Person, CashAdvance, Expense, ActivityEvent } from '../types/accounting';
+import { Vehicle, Person, CashAdvance, Expense, ActivityEvent, Income } from '../types/accounting';
 
 export const INITIAL_PERSONNEL: Person[] = [
   {
@@ -415,3 +415,40 @@ export const INITIAL_ACTIVITIES: ActivityEvent[] = [
     actorName: 'رضا نادری',
   },
 ];
+
+export const INITIAL_INCOMES: Income[] = [
+  {
+    id: 'inc-1',
+    amount: 25000000, // ۲۵ میلیون تومان
+    description: 'کمیسیون مبایعه‌نامه و انتقال سند تویوتا کمری ۲۰۲۵',
+    category: 'کمیسیون و حق‌العمل',
+    vehicleId: 'veh-1',
+    vehicleLabel: 'تویوتا کمری ۲۰۲۵',
+    personName: 'مدیریت فروش نمایشگاه',
+    date: '۱۴۰۵/۰۶/۲۹', // today
+    notes: 'واریز به حساب تجاری نمایشگاه از سوی خریدار محترم',
+    createdAt: '۱۴۰۵/۰۶/۲۹ 11:00',
+  },
+  {
+    id: 'inc-2',
+    amount: 3500000, // ۳.۵ میلیون تومان
+    description: 'کارشناسی رنگ، بدنه و دیاگ تخصصی برای مشتری ورودی',
+    category: 'خدمات و کارشناسی',
+    personId: 'per-2',
+    personName: 'علی حسینی',
+    date: '۱۴۰۵/۰۶/۲۹', // today
+    notes: 'تسویه پایانه پوز بخش پذیرش فنی',
+    createdAt: '۱۴۰۵/۰۶/۲۹ 14:15',
+  },
+  {
+    id: 'inc-3',
+    amount: 18000000, // ۱۸ میلیون تومان
+    description: 'بیعانه رزرو قرارداد اکستریم VX',
+    category: 'بیعانه و قرارداد',
+    vehicleId: 'veh-3',
+    vehicleLabel: 'اکستریم VX فول',
+    date: '۱۴۰۵/۰۶/۲۸',
+    createdAt: '۱۴۰۵/۰۶/۲۸ 17:00',
+  },
+];
+

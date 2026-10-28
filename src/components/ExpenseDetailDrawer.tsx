@@ -16,6 +16,7 @@ import {
   Wallet,
   Layers,
   Edit,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAccounting } from '../context/AccountingContext';
 import { Expense } from '../types/accounting';
@@ -34,7 +35,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
   onClose,
   onArchive,
 }) => {
-  const { addReceiptToExpense, removeReceiptFromExpense, checkDuplicateReceipt } = useAccounting();
+  const { addReceiptToExpense, removeReceiptFromExpense, checkDuplicateReceipt, isPeriodReadOnly } = useAccounting();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPreviewImage, setSelectedPreviewImage] = useState<string | null>(null);
   const [isReimburseModalOpen, setIsReimburseModalOpen] = useState(false);
@@ -104,13 +105,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
               <h3 className="text-base font-bold text-zinc-100 mt-1">{expense.description}</h3>
             </div>
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="p-1.5 text-zinc-400 hover:text-amber-400 rounded-lg hover:bg-[#22242a] transition-colors"
-                title="ویرایش و تکمیل هزینه"
-              >
-                <Edit className="w-4 h-4" />
-              </button>
+              {!isPeriodReadOnly && (
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="p-1.5 text-zinc-400 hover:text-amber-400 rounded-lg hover:bg-[#22242a] transition-colors"
+                  title="ویرایش و تکمیل هزینه"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+              )}
               <button
                 onClick={onClose}
                 className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-[#22242a] transition-colors"
@@ -122,6 +125,13 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
           {/* Body */}
           <div className="p-5 space-y-4 overflow-y-auto flex-1 text-xs">
+            {isPeriodReadOnly && (
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2.5 text-amber-300">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-amber-400" />
+                <span>این سند متعلق به یک دوره مالی بسته یا قفل شده است و فقط قابل مشاهده می‌باشد.</span>
+              </div>
+            )}
+
             {/* Amount Banner */}
             <div className="p-4 rounded-xl bg-[#1c1e24] border border-[#2b2e37] flex items-center justify-between">
               <span className="text-zinc-400">مبلغ قطعی هزینه</span>
@@ -175,7 +185,7 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       </div>
                     )}
                   </div>
-                ) : (
+                ) : !isPeriodReadOnly ? (
                   <button
                     onClick={() => setIsReimburseModalOpen(true)}
                     className="w-full mt-2 py-1.5 px-3 rounded-lg bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
@@ -183,6 +193,10 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                     <CreditCard className="w-4 h-4" />
                     <span>ثبت بازپرداخت به پرسنل</span>
                   </button>
+                ) : (
+                  <div className="text-[11px] text-zinc-400 mt-2 p-2 rounded bg-zinc-800/50 text-center border border-zinc-700/50">
+                    دوره مالی بسته شده است — امکان تسویه بازپرداخت وجود ندارد
+                  </div>
                 )}
               </div>
             )}
@@ -241,13 +255,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                   )}
                 </div>
 
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-2.5 py-1 text-xs bg-[#23262e] hover:bg-[#2d313c] text-zinc-200 border border-[#353945] rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Paperclip className="w-3.5 h-3.5 text-amber-400" />
-                  <span>افزودن رسید</span>
-                </button>
+                {!isPeriodReadOnly && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-2.5 py-1 text-xs bg-[#23262e] hover:bg-[#2d313c] text-zinc-200 border border-[#353945] rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Paperclip className="w-3.5 h-3.5 text-amber-400" />
+                    <span>افزودن رسید</span>
+                  </button>
+                )}
               </div>
 
               <input
@@ -311,13 +327,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
 
               {expense.receipts.length === 0 ? (
                 <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-5 border border-dashed border-[#2e313a] hover:border-amber-500/40 rounded-xl text-center cursor-pointer bg-[#141519] transition-colors"
+                  onClick={() => !isPeriodReadOnly && fileInputRef.current?.click()}
+                  className={`p-5 border border-dashed border-[#2e313a] rounded-xl text-center bg-[#141519] transition-colors ${
+                    isPeriodReadOnly ? 'opacity-70 cursor-default' : 'hover:border-amber-500/40 cursor-pointer'
+                  }`}
                 >
                   <Paperclip className="w-5 h-5 mx-auto text-zinc-500 mb-1.5" />
                   <div className="text-xs font-medium text-zinc-300">هنوز رسیدی برای این هزینه ثبت نشده است</div>
                   <div className="text-[11px] text-zinc-500 mt-1">
-                    جهت تکمیل مدارک، فاکتور کاغذی یا رسید پوز را بارگذاری نمایید
+                    {isPeriodReadOnly ? 'دوره بسته شده است؛ امکان افزودن مدرک جدید وجود ندارد' : 'جهت تکمیل مدارک، فاکتور کاغذی یا رسید پوز را بارگذاری نمایید'}
                   </div>
                 </div>
               ) : (
@@ -338,13 +356,15 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
                       </div>
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="truncate max-w-[120px] text-zinc-300">{rec.name}</span>
-                        <button
-                          onClick={() => removeReceiptFromExpense(expense.id, rec.id)}
-                          className="text-zinc-500 hover:text-rose-400 p-1 rounded"
-                          title="حذف رسید"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {!isPeriodReadOnly && (
+                          <button
+                            onClick={() => removeReceiptFromExpense(expense.id, rec.id)}
+                            className="text-zinc-500 hover:text-rose-400 p-1 rounded"
+                            title="حذف رسید"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -354,27 +374,36 @@ export const ExpenseDetailDrawer: React.FC<ExpenseDetailDrawerProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-[#26282e] bg-[#131417] flex items-center justify-between">
-            <button
-              onClick={() => {
-                if (window.confirm('آیا از آرشیو این ردیف هزینه اطمینان دارید؟')) {
-                  onArchive(expense.id);
-                  onClose();
-                }
-              }}
-              className="px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>آرشیو هزینه</span>
-            </button>
+          <div className="p-4 border-t border-[#26282e] bg-[#131417]">
+            {isPeriodReadOnly ? (
+              <div className="text-center text-xs text-zinc-400 py-1 flex items-center justify-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span>دوره مالی بسته شده است — عملیات ویرایش یا آرشیو این سند غیرفعال است</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    if (window.confirm('آیا از آرشیو این ردیف هزینه اطمینان دارید؟')) {
+                      onArchive(expense.id);
+                      onClose();
+                    }
+                  }}
+                  className="px-3 py-1.5 text-xs text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>آرشیو هزینه</span>
+                </button>
 
-            <button
-              onClick={() => setIsEditModalOpen(true)}
-              className="px-4 py-1.5 bg-[#23262e] hover:bg-[#2d313c] text-zinc-200 border border-[#353945] rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
-            >
-              <Edit className="w-3.5 h-3.5 text-amber-400" />
-              <span>ویرایش جزئیات</span>
-            </button>
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="px-4 py-1.5 bg-[#23262e] hover:bg-[#2d313c] text-zinc-200 border border-[#353945] rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Edit className="w-3.5 h-3.5 text-amber-400" />
+                  <span>ویرایش جزئیات</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

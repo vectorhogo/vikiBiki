@@ -23,13 +23,14 @@ interface CashAdvanceViewProps {
 export const CashAdvanceView: React.FC<CashAdvanceViewProps> = ({
   onOpenQuickExpenseWithPerson,
 }) => {
-  const { cashAdvances, personnelBalances, metrics, settleCashAdvance } = useAccounting();
+  const { cashAdvances, personnelBalances, metrics, settleCashAdvance, isPeriodReadOnly } = useAccounting();
 
   const [isNewAdvanceModalOpen, setIsNewAdvanceModalOpen] = useState(false);
   const [selectedPersonForNewAdvance, setSelectedPersonForNewAdvance] = useState<string | undefined>();
   const [settlementAdvance, setSettlementAdvance] = useState<CashAdvance | null>(null);
 
   const handleOpenNewAdvanceForPerson = (personId?: string) => {
+    if (isPeriodReadOnly) return;
     setSelectedPersonForNewAdvance(personId);
     setIsNewAdvanceModalOpen(true);
   };
@@ -52,7 +53,13 @@ export const CashAdvanceView: React.FC<CashAdvanceViewProps> = ({
 
         <button
           onClick={() => handleOpenNewAdvanceForPerson()}
-          className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-lg text-xs sm:text-sm transition-colors cursor-pointer self-start sm:self-auto"
+          disabled={isPeriodReadOnly}
+          title={isPeriodReadOnly ? 'دوره مالی بسته یا قفل شده است (فقط خواندنی)' : 'تنخواه جدید'}
+          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 font-bold rounded-lg text-xs sm:text-sm transition-colors self-start sm:self-auto ${
+            isPeriodReadOnly
+              ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50'
+              : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 cursor-pointer'
+          }`}
         >
           <Plus className="w-4 h-4" />
           <span>تنخواه جدید</span>
@@ -111,24 +118,41 @@ export const CashAdvanceView: React.FC<CashAdvanceViewProps> = ({
                 <div className="pt-2.5 border-t border-[#23252c] flex items-center gap-2 text-xs">
                   {openAdvance ? (
                     <button
-                      onClick={() => setSettlementAdvance(openAdvance)}
-                      className="flex-1 py-1 px-2 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/25 font-medium transition-colors cursor-pointer text-center"
+                      onClick={() => !isPeriodReadOnly && setSettlementAdvance(openAdvance)}
+                      disabled={isPeriodReadOnly}
+                      className={`flex-1 py-1 px-2 rounded-lg font-medium transition-colors text-center ${
+                        isPeriodReadOnly
+                          ? 'bg-zinc-800 text-zinc-600 border border-zinc-700/40 cursor-not-allowed'
+                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/25 cursor-pointer'
+                      }`}
+                      title={isPeriodReadOnly ? 'دوره بسته شده است (فقط خواندنی)' : 'تسویه این تنخواه'}
                     >
                       تسویه
                     </button>
                   ) : (
                     <button
                       onClick={() => handleOpenNewAdvanceForPerson(pb.personId)}
-                      className="flex-1 py-1 px-2 rounded-lg bg-[#21232b] hover:bg-[#2a2d37] text-zinc-300 border border-[#30333e] transition-colors cursor-pointer text-center"
+                      disabled={isPeriodReadOnly}
+                      className={`flex-1 py-1 px-2 rounded-lg transition-colors text-center ${
+                        isPeriodReadOnly
+                          ? 'bg-zinc-800 text-zinc-600 border border-zinc-700/40 cursor-not-allowed'
+                          : 'bg-[#21232b] hover:bg-[#2a2d37] text-zinc-300 border border-[#30333e] cursor-pointer'
+                      }`}
+                      title={isPeriodReadOnly ? 'دوره بسته شده است (فقط خواندنی)' : 'ثبت تنخواه جدید'}
                     >
                       + تنخواه جدید
                     </button>
                   )}
 
                   <button
-                    onClick={() => onOpenQuickExpenseWithPerson(pb.personId, openAdvance?.id)}
-                    className="flex-1 py-1 px-2 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 font-medium transition-colors cursor-pointer text-center flex items-center justify-center gap-1"
-                    title="ثبت هزینه کسر از تنخواه این شخص"
+                    onClick={() => !isPeriodReadOnly && onOpenQuickExpenseWithPerson(pb.personId, openAdvance?.id)}
+                    disabled={isPeriodReadOnly}
+                    className={`flex-1 py-1 px-2 rounded-lg font-medium transition-colors text-center flex items-center justify-center gap-1 ${
+                      isPeriodReadOnly
+                        ? 'bg-zinc-800 text-zinc-600 border border-zinc-700/40 cursor-not-allowed'
+                        : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/25 cursor-pointer'
+                    }`}
+                    title={isPeriodReadOnly ? 'دوره بسته شده است (فقط خواندنی)' : 'ثبت هزینه کسر از تنخواه این شخص'}
                   >
                     <Receipt className="w-3 h-3" />
                     <span>ثبت هزینه</span>
@@ -208,8 +232,14 @@ export const CashAdvanceView: React.FC<CashAdvanceViewProps> = ({
                     <td className="py-3 px-4 text-center whitespace-nowrap">
                       {adv.status !== 'settled' ? (
                         <button
-                          onClick={() => setSettlementAdvance(adv)}
-                          className="px-2.5 py-1 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/25 rounded-lg transition-colors cursor-pointer"
+                          onClick={() => !isPeriodReadOnly && setSettlementAdvance(adv)}
+                          disabled={isPeriodReadOnly}
+                          className={`px-2.5 py-1 text-xs border rounded-lg transition-colors ${
+                            isPeriodReadOnly
+                              ? 'bg-zinc-800 text-zinc-600 border-zinc-700/40 cursor-not-allowed'
+                              : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/25 cursor-pointer'
+                          }`}
+                          title={isPeriodReadOnly ? 'دوره بسته شده است (فقط خواندنی)' : 'تسویه'}
                         >
                           تسویه
                         </button>

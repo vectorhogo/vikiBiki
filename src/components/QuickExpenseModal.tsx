@@ -48,7 +48,7 @@ export const QuickExpenseModal: React.FC<QuickExpenseModalProps> = ({
   initialPersonId,
   initialCashAdvanceId,
 }) => {
-  const { personnel, vehicles, cashAdvances, expenses, addExpense, showToast, checkDuplicateReceipt } = useAccounting();
+  const { personnel, vehicles, cashAdvances, expenses, addExpense, showToast, checkDuplicateReceipt, isPeriodReadOnly } = useAccounting();
 
   const [personId, setPersonId] = useState<string>('');
   const [rawAmount, setRawAmount] = useState<string>('');
@@ -60,6 +60,7 @@ export const QuickExpenseModal: React.FC<QuickExpenseModalProps> = ({
   const [date, setDate] = useState<string>(DEALERSHIP_CURRENT_DATE);
   const [notes, setNotes] = useState<string>('');
   const [receipts, setReceipts] = useState<ReceiptAttachment[]>([]);
+  const [expenseResponsibility, setExpenseResponsibility] = useState<'dealership' | 'owner' | 'contract'>('dealership');
 
   // Duplicate warning state
   const [duplicateWarning, setDuplicateWarning] = useState<Expense | null>(null);
@@ -227,6 +228,7 @@ export const QuickExpenseModal: React.FC<QuickExpenseModalProps> = ({
         date: date || DEALERSHIP_CURRENT_DATE,
         receipts,
         notes: notes.trim() || undefined,
+        expenseResponsibility: vehicleId ? expenseResponsibility : undefined,
       },
       ignoreDuplicate
     );
@@ -444,10 +446,58 @@ export const QuickExpenseModal: React.FC<QuickExpenseModalProps> = ({
                 .filter((v) => v.status === 'active')
                 .map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.fullName} ({toPersianDigits(v.plate)})
+                    {v.fullName} ({toPersianDigits(v.plate)}) {v.ownershipType === 'consignment' ? '[امانی]' : '[نمایشگاه]'}
                   </option>
                 ))}
             </select>
+
+            {vehicleId && (
+              <div className="mt-2 p-2.5 bg-[#131417] border border-[#2b2d38] rounded-xl space-y-1.5 animate-in fade-in">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="font-semibold text-zinc-300">مسئولیت پرداخت این هزینه خودرو:</span>
+                  <span className="text-[10px] text-zinc-400">
+                    {vehicles.find(v => v.id === vehicleId)?.ownershipType === 'consignment'
+                      ? 'خودروی امانی (مالک دیگر)'
+                      : 'خودروی نمایشگاه'}
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setExpenseResponsibility('dealership')}
+                    className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer ${
+                      expenseResponsibility === 'dealership'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
+                        : 'bg-[#1b1c24] text-zinc-400 hover:text-white border border-[#292c3a]'
+                    }`}
+                  >
+                    بر عهده نمایشگاه
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExpenseResponsibility('owner')}
+                    className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer ${
+                      expenseResponsibility === 'owner'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold'
+                        : 'bg-[#1b1c24] text-zinc-400 hover:text-white border border-[#292c3a]'
+                    }`}
+                  >
+                    بر عهده مالک (کسر از تسویه)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExpenseResponsibility('contract')}
+                    className={`py-1.5 px-2 rounded-lg text-center transition-all cursor-pointer ${
+                      expenseResponsibility === 'contract'
+                        ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40 font-bold'
+                        : 'bg-[#1b1c24] text-zinc-400 hover:text-white border border-[#292c3a]'
+                    }`}
+                  >
+                    طبق قرارداد
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* دسته‌بندی (Category - Optional) */}

@@ -1,5 +1,23 @@
 import React, { useMemo } from 'react';
-import { X, Car, Plus, Calendar, ShieldCheck, Clock, AlertCircle, Wrench, Fuel, DollarSign, Tag } from 'lucide-react';
+import {
+  X,
+  Car,
+  Plus,
+  Calendar,
+  ShieldCheck,
+  Clock,
+  AlertCircle,
+  Wrench,
+  Fuel,
+  DollarSign,
+  Tag,
+  FileText,
+  ChevronLeft,
+  User,
+  ArrowRightLeft,
+  Building,
+  CheckCircle2,
+} from 'lucide-react';
 import { Vehicle, InspectionStatus } from '../types/accounting';
 import { formatToman, toPersianDigits } from '../utils/formatters';
 import { useAccounting } from '../context/AccountingContext';
@@ -8,16 +26,38 @@ interface VehicleDetailDrawerProps {
   vehicle: Vehicle | null;
   onClose: () => void;
   onOpenQuickExpenseForVehicle: (vehicleId: string) => void;
+  onOpenSaleDossier?: (saleId: string) => void;
+  onCreateSaleForVehicle?: (vehicleId: string) => void;
 }
 
 export const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
   vehicle,
   onClose,
   onOpenQuickExpenseForVehicle,
+  onOpenSaleDossier,
+  onCreateSaleForVehicle,
 }) => {
-  const { expenses, updateVehicleInspection, activities } = useAccounting();
+  const {
+    expenses,
+    updateVehicleInspection,
+    activities,
+    isPeriodReadOnly,
+    saleDossiers,
+    consignmentAgreements,
+    ownerSettlements,
+    vehicleInspections,
+    expiringDocs,
+  } = useAccounting();
 
   if (!vehicle) return null;
+
+  const isConsignment = vehicle.ownershipType === 'consignment';
+  const agreement = consignmentAgreements.find((a) => a.vehicleId === vehicle.id);
+  const settlement = ownerSettlements.find((s) => s.vehicleId === vehicle.id);
+  const inspectionRecord = vehicleInspections.find((i) => i.vehicleId === vehicle.id);
+
+  // Check if this vehicle is sold / has a sale dossier
+  const vehicleSale = saleDossiers.find((s) => s.vehicleId === vehicle.id);
 
   // Expenses specifically tied to this vehicle
   const vehicleExpenses = useMemo(() => {
@@ -91,6 +131,142 @@ export const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             </div>
           </div>
 
+          {/* Phase 08: Ownership & Consignment Information Card */}
+          <div
+            className={`p-3.5 rounded-xl border space-y-2.5 ${
+              isConsignment
+                ? 'bg-purple-950/20 border-purple-500/30'
+                : 'bg-amber-950/15 border-amber-500/25'
+            }`}
+          >
+            <div className="flex items-center justify-between border-b pb-2 border-inherit">
+              <div className="flex items-center gap-2">
+                {isConsignment ? (
+                  <ArrowRightLeft className="w-4 h-4 text-purple-400" />
+                ) : (
+                  <Building className="w-4 h-4 text-amber-400" />
+                )}
+                <span className="font-bold text-zinc-100">
+                  نوع مالکیت: {isConsignment ? 'خودروی امانی' : 'مالکیت نمایشگاه'}
+                </span>
+              </div>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  isConsignment
+                    ? 'bg-purple-500/20 text-purple-300'
+                    : 'bg-amber-500/20 text-amber-300'
+                }`}
+              >
+                {isConsignment ? 'امانی' : 'خرید نمایشگاه'}
+              </span>
+            </div>
+
+            {isConsignment ? (
+              <div className="space-y-2 text-xs">
+                <div className="grid grid-cols-2 gap-2 text-zinc-300">
+                  <div>
+                    <span className="text-zinc-500 block text-[11px]">مالک خودرو:</span>
+                    <strong className="text-zinc-100">
+                      {vehicle.ownerName || agreement?.ownerName || '—'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 block text-[11px]">تلفن مالک:</span>
+                    <span className="font-mono">{toPersianDigits(vehicle.ownerPhone || '—')}</span>
+                  </div>
+                  {agreement && (
+                    <>
+                      <div>
+                        <span className="text-zinc-500 block text-[11px]">شماره قرارداد امانی:</span>
+                        <span className="font-mono text-indigo-300">{agreement.contractNumber}</span>
+                      </div>
+                      <div>
+                        <span className="text-zinc-500 block text-[11px]">شروع امانی:</span>
+                        <span className="font-mono">{toPersianDigits(agreement.startDate)}</span>
+                      </div>
+                    </>
+                  )}
+                  {vehicle.askingPrice ? (
+                    <div className="col-span-2 pt-1 border-t border-purple-500/20 flex justify-between items-center">
+                      <span className="text-zinc-400">قیمت پیشنهادی فروش:</span>
+                      <strong className="font-mono text-amber-400">{formatToman(vehicle.askingPrice)}</strong>
+                    </div>
+                  ) : null}
+                </div>
+
+                {settlement && (
+                  <div className="p-2.5 rounded-lg bg-[#14151e] border border-purple-500/20 text-[11px] space-y-1">
+                    <div className="flex justify-between text-zinc-400">
+                      <span>حق کمیسیون نمایشگاه:</span>
+                      <span className="font-mono text-emerald-400 font-bold">
+                        {formatToman(settlement.dealershipCommission)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>مبلغ قابل تسویه مالک:</span>
+                      <span className="font-mono text-zinc-200">
+                        {formatToman(settlement.netPayableToOwner)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-bold pt-1 border-t border-[#232535]">
+                      <span className="text-amber-400">مانده تسویه با مالک:</span>
+                      <span className="font-mono text-amber-400">
+                        {formatToman(settlement.remainingAmount)}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 text-xs text-zinc-300">
+                <div>
+                  <span className="text-zinc-500 block text-[11px]">طرف فروشنده:</span>
+                  <span>{vehicle.sellerName || 'اتو عبداللهی'}</span>
+                </div>
+                {vehicle.purchasePrice ? (
+                  <div>
+                    <span className="text-zinc-500 block text-[11px]">بهای خرید نمایشگاه:</span>
+                    <strong className="font-mono text-amber-400">
+                      {formatToman(vehicle.purchasePrice)}
+                    </strong>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          {/* Inspection / 3D Damage Record Summary */}
+          {inspectionRecord && (
+            <div className="p-3 rounded-xl bg-[#191b20] border border-[#272932] space-y-2 text-xs">
+              <div className="flex items-center justify-between border-b border-[#24262e] pb-1.5 font-bold text-zinc-200">
+                <span className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>فرم کارشناسی و چک‌لیست اقلام تحویلی</span>
+                </span>
+                <span className="text-[10px] text-zinc-400 font-mono">
+                  {toPersianDigits(inspectionRecord.date)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] text-zinc-400">
+                <div>
+                  اقلام بررسی شده:{' '}
+                  <strong className="text-zinc-200 font-mono">
+                    {toPersianDigits(
+                      inspectionRecord.checklist.filter((c) => c.state !== 'uninspected').length
+                    )}{' '}
+                    / {toPersianDigits(inspectionRecord.checklist.length)}
+                  </strong>
+                </div>
+                <div>
+                  نقاط آسیب روی دیاگرام بدنه:{' '}
+                  <strong className="text-amber-400 font-mono">
+                    {toPersianDigits(inspectionRecord.damageMarkers.length)} مورد
+                  </strong>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Inspection Status Selector */}
           <div className="p-3 rounded-lg bg-[#191b20] border border-[#26282e] space-y-2">
             <span className="font-semibold text-zinc-300 block">وضعیت کارشناسی خودرو:</span>
@@ -111,6 +287,63 @@ export const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             </div>
           </div>
 
+          {/* Sale & Delivery Dossier Status */}
+          <div className="p-3.5 rounded-xl bg-[#191b20] border border-[#282a32] text-xs space-y-2">
+            <div className="flex items-center justify-between font-bold text-zinc-200 border-b border-[#24262e] pb-1.5">
+              <span className="flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-amber-400" />
+                <span>پرونده فروش و تحویل خودرو</span>
+              </span>
+              {vehicleSale ? (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  فروخته شده ({vehicleSale.saleNumber})
+                </span>
+              ) : (
+                <span className="text-[10px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">
+                  موجود در انبار
+                </span>
+              )}
+            </div>
+
+            {vehicleSale ? (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2 text-[11px] text-zinc-300">
+                  <div>خریدار: <strong className="text-zinc-100">{vehicleSale.customerName}</strong></div>
+                  <div>مبلغ معامله: <strong className="text-amber-400 font-mono">{formatToman(vehicleSale.salePrice)}</strong></div>
+                  <div>تاریخ تحویل: <span>{toPersianDigits(vehicleSale.deliveryDate)}</span></div>
+                  <div>فرم مدارک و خودرو: <span className="text-emerald-400">تکمیل شده ✓</span></div>
+                </div>
+
+                <div className="pt-2 border-t border-[#23252b] flex items-center justify-end">
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenSaleDossier?.(vehicleSale.id);
+                    }}
+                    className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <span>مشاهده پرونده فروش و فرم‌های تحویل</span>
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between pt-1">
+                <p className="text-[11px] text-zinc-400">این خودرو هنوز پرونده فروش و تحویل ثبت‌شده ندارد.</p>
+                <button
+                  onClick={() => {
+                    onClose();
+                    onCreateSaleForVehicle?.(vehicle.id);
+                  }}
+                  className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-3 h-3 stroke-[2.5]" />
+                  <span>ثبت فروش</span>
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Total Cost Banner & Action */}
           <div className="p-4 rounded-xl bg-[#1c1e24] border border-[#2b2e37] flex items-center justify-between">
             <div>
@@ -121,10 +354,17 @@ export const VehicleDetailDrawer: React.FC<VehicleDetailDrawerProps> = ({
             </div>
             <button
               onClick={() => {
+                if (isPeriodReadOnly) return;
                 onOpenQuickExpenseForVehicle(vehicle.id);
                 onClose();
               }}
-              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+              disabled={isPeriodReadOnly}
+              className={`px-3 py-1.5 font-bold rounded-lg transition-colors flex items-center gap-1 ${
+                isPeriodReadOnly
+                  ? 'bg-zinc-800 text-zinc-600 cursor-not-allowed border border-zinc-700/50'
+                  : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 cursor-pointer'
+              }`}
+              title={isPeriodReadOnly ? 'دوره مالی بسته شده است (فقط خواندنی)' : 'ثبت هزینه برای این خودرو'}
             >
               <Plus className="w-3.5 h-3.5" />
               <span>ثبت هزینه</span>

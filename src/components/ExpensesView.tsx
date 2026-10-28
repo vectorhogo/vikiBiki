@@ -29,7 +29,7 @@ interface ExpensesViewProps {
 }
 
 export const ExpensesView: React.FC<ExpensesViewProps> = ({ onOpenQuickExpense, initialFilter }) => {
-  const { expenses, archiveExpense, metrics } = useAccounting();
+  const { expenses, archiveExpense, metrics, isPeriodReadOnly } = useAccounting();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -124,7 +124,13 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onOpenQuickExpense, 
 
           <button
             onClick={onOpenQuickExpense}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold rounded-lg text-xs sm:text-sm transition-all cursor-pointer shadow-sm"
+            disabled={isPeriodReadOnly}
+            title={isPeriodReadOnly ? 'دوره مالی بسته یا قفل شده است (فقط خواندنی)' : 'ثبت هزینه جدید'}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 font-bold rounded-lg text-xs sm:text-sm transition-all shadow-sm ${
+              isPeriodReadOnly
+                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed border border-zinc-700/50'
+                : 'bg-amber-500 hover:bg-amber-400 text-zinc-950 cursor-pointer'
+            }`}
           >
             <Plus className="w-4 h-4" />
             <span>ثبت هزینه</span>
@@ -359,7 +365,7 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onOpenQuickExpense, 
                       <td className="py-3 px-4 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Reimburse action if personal & needs reimbursement */}
-                          {source === 'personal' && expense.reimbursementStatus !== 'reimbursed' && (
+                          {source === 'personal' && expense.reimbursementStatus !== 'reimbursed' && !isPeriodReadOnly && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -373,17 +379,19 @@ export const ExpensesView: React.FC<ExpensesViewProps> = ({ onOpenQuickExpense, 
                             </button>
                           )}
 
-                          {/* Edit / Complete button */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingExpense(expense);
-                            }}
-                            className="p-1 text-zinc-400 hover:text-amber-400 rounded hover:bg-[#282a32] transition-colors"
-                            title="ویرایش و تکمیل"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Edit / Complete button (hidden in read-only mode) */}
+                          {!isPeriodReadOnly && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingExpense(expense);
+                              }}
+                              className="p-1 text-zinc-400 hover:text-amber-400 rounded hover:bg-[#282a32] transition-colors"
+                              title="ویرایش و تکمیل"
+                            >
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                          )}
 
                           {/* View details drawer button */}
                           <button
